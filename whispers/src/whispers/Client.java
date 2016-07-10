@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.net.SocketException;
 import java.net.UnknownHostException;
 
 public class Client {
@@ -30,18 +31,19 @@ public class Client {
 			System.exit(1);
 		}
 
-		try (Socket kkSocket = new Socket(hostName, portNumber);
-				PrintWriter out = new PrintWriter(kkSocket.getOutputStream(), true);
+		try (Socket socket = new Socket(hostName, portNumber);
+				PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
 				BufferedReader stdIn = new BufferedReader(new InputStreamReader(System.in));
-				BufferedReader in = new BufferedReader(new InputStreamReader(kkSocket.getInputStream()));) {
+				BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));) {
 
-			String fromServer;
+			new ReadThread(in).start();
+			
 			String fromUser;
 
 			while (true) {
 				// read message from server (only one line)
-				fromServer = in.readLine();
-				System.out.println("Server: " + fromServer);
+//				fromServer = in.readLine();
+//				System.out.println("Server: " + fromServer);
 
 				// then reply to server (only one line)
 				fromUser = stdIn.readLine();
@@ -59,4 +61,26 @@ public class Client {
 		}
 	}
 
+	static class ReadThread extends Thread {
+		private BufferedReader reader = null;
+
+		public ReadThread(BufferedReader reader) {
+			this.reader = reader;
+		}
+
+		public void run() {
+
+			try {
+				while (true) {
+					System.out.println("Server:" +reader.readLine());
+				}
+			} catch(SocketException e) {
+				System.out.println("Server disconnected");
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+
+		}
+	}
 }
